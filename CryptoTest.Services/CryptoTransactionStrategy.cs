@@ -4,9 +4,9 @@ using CryptoTest.Models.Transaction;
 
 namespace CryptoTest.Services;
 
-public class CryptoBuyingStrategy
+public class CryptoTransactionStrategy : ICryptoTransactionStrategy
 {
-    public static Transaction CreateTransactionStrategy(Exchange exchange, Order order)
+    public Transaction CreateTransactionStrategy(Exchange exchange, Order order)
     {
         if (order.Type == OrderTypeEnum.Buy.ToString())
             return CreateBuyingStrategy(exchange.OrderBook.Asks.Where(ask => ask.Order.Price <= order.Price), order);
@@ -16,14 +16,14 @@ public class CryptoBuyingStrategy
         throw new Exception($"Unsupported order type: {order.Type}");
     }
 
-    private static Transaction CreateBuyingStrategy(IEnumerable<OrderHolder> availableSellingOrders, Order order)
+    private Transaction CreateBuyingStrategy(IEnumerable<OrderHolder> availableSellingOrders, Order order)
     {
         var askingAmount = order.Amount;
 
         var transaction = new Transaction
         {
             UnfulfilledAmount = askingAmount,
-            FullfillmentId = order.Id,
+            FullfillmentId = order.Id
         };
 
         foreach (var sellOrder in availableSellingOrders)

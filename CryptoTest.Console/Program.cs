@@ -2,26 +2,45 @@
 using CryptoTest.Models;
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-Console.WriteLine("Hello, World!");
+using IHost host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
+    {
+        services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
+    })
+    .Build();
 
 
-Console.WriteLine("Read exchange data from file");
-var rawExchangeData = File.ReadAllText("exchange-01.json");
-var exchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
-if (exchange == null)
-    throw new Exception("Exchange data could not be read");
+Exchange? exchange;
 
-Console.WriteLine("Exchange data read");
+const string pathToExchangeData = "exchange-01.json";
 
-var newExchange = CryptoStrategyFilterExchangeLimit.FilterExchangeLimit(exchange);
-Console.WriteLine("Restricted sell orders:");
 
-var sortedExchange = CryptoStrategySorting.SortExchangeOrders(newExchange);
+try
+{
+    var rawExchangeData = File.ReadAllText(pathToExchangeData);
+    exchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
+    if (exchange == null)
+        throw new Exception("Exchange data could not be read");
+}
+catch (Exception)
+{
+    Console.WriteLine("Unable to read exchange data");
+    Console.WriteLine("Exiting");
+    return;
+}
 
-Console.WriteLine("Sorted buy orders:");
+Console.WriteLine($"Exchange data '{exchange.Id}' loaded");
 
-Console.WriteLine($"Exchange data: {exchange.AvailableFunds.Euro} Euro, {exchange.AvailableFunds.Crypto} Crypto");
+var filteredExchange = CryptoStrategyFilterExchangeLimit.FilterExchangeLimit(exchange);
+var sortedExchange = CryptoStrategySorting.SortExchangeOrders(filteredExchange);
+
+Console.WriteLine($"Exchange data funds: {exchange.AvailableFunds.Euro} Euro, {exchange.AvailableFunds.Crypto} Crypto");
+
+Console.WriteLine($"Lowest asking price: {sortedExchange.OrderBook.Asks.First().Order.Price}");
+Console.WriteLine($"Highest bidding price: {sortedExchange.OrderBook.Bids.First().Order.Price}");
 
 var newOrder = new Order()
 {
@@ -35,7 +54,9 @@ var newOrder = new Order()
 
 Console.WriteLine($"Order to {newOrder.Type}: {newOrder.Amount} for {newOrder.Price}");
 
-var transaction = CryptoBuyingStrategy.CreateTransactionStrategy(sortedExchange, newOrder);
+var cryptoBuildingStrategy = host.Services.GetRequiredService<ICryptoTransactionStrategy>();
+
+var transaction = cryptoBuildingStrategy.CreateTransactionStrategy(sortedExchange, newOrder);
 Console.WriteLine(
     $"Transaction: {transaction.FullfillmentAmount} for {transaction.FullfillmentPrice}, unfulfilled: {transaction.UnfulfilledAmount}");
 foreach (var transactionTransactionOrder in transaction.TransactionOrders)
@@ -48,4 +69,7 @@ if (transaction.TransactionOrders.Count == 0)
     Console.WriteLine($"Unable to fill any asking transaction");
 
 if (transaction.UnfulfilledAmount > 0)
-    Console.WriteLine($"Unfulfilled amount: {transaction.UnfulfilledAmount} of asking amount {newOrder.Amount} , diff of {newOrder.Amount - transaction.UnfulfilledAmount}");
+    Console.WriteLine(
+        $"Unfulfilled amount: {transaction.UnfulfilledAmount} of asking amount {newOrder.Amount} , diff of {newOrder.Amount - transaction.UnfulfilledAmount}");
+
+Console.WriteLine("Finished");

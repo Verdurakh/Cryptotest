@@ -20,4 +20,9 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\CryptoTest.Models\CryptoTest.Models.csproj" />
+      <ProjectReference Include="..\CryptoTest.Services\CryptoTest.Services.csproj" />
+    </ItemGroup>
+
 </Project>
