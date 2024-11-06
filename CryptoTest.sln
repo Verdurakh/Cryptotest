@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Console", "CryptoTest.Console\CryptoTest.Console.csproj", "{F6BB969C-326D-40A8-AFC7-7113ABD409CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Models", "CryptoTest.Models\CryptoTest.Models.csproj", "{43A73253-D505-49D0-BA2B-BD29975E746B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Services", "CryptoTest.Services\CryptoTest.Services.csproj", "{0980A511-871C-4C26-B61C-65C9A721D897}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Tests", "CryptoTest.Tests\CryptoTest.Tests.csproj", "{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F6BB969C-326D-40A8-AFC7-7113ABD409CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6BB969C-326D-40A8-AFC7-7113ABD409CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6BB969C-326D-40A8-AFC7-7113ABD409CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6BB969C-326D-40A8-AFC7-7113ABD409CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43A73253-D505-49D0-BA2B-BD29975E746B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43A73253-D505-49D0-BA2B-BD29975E746B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43A73253-D505-49D0-BA2B-BD29975E746B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43A73253-D505-49D0-BA2B-BD29975E746B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0980A511-871C-4C26-B61C-65C9A721D897}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0980A511-871C-4C26-B61C-65C9A721D897}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0980A511-871C-4C26-B61C-65C9A721D897}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0980A511-871C-4C26-B61C-65C9A721D897}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
