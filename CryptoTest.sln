@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Services", "Cryp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Tests", "CryptoTest.Tests\CryptoTest.Tests.csproj", "{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoTest.Api", "CryptoTest.Api\CryptoTest.Api.csproj", "{A79F19C9-C637-4E85-A4C3-8BF05B89E7DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29AB8B39-C82A-4E08-8B6E-F24AEE780FEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A79F19C9-C637-4E85-A4C3-8BF05B89E7DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A79F19C9-C637-4E85-A4C3-8BF05B89E7DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A79F19C9-C637-4E85-A4C3-8BF05B89E7DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A79F19C9-C637-4E85-A4C3-8BF05B89E7DA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -9,21 +9,25 @@ using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
+        services.AddSingleton<ExchangeHolder>();
     })
     .Build();
 
 
-Exchange? exchange;
-
 const string pathToExchangeData = "exchange-01.json";
 
+
+var exchangeHolder = host.Services.GetRequiredService<ExchangeHolder>();
 
 try
 {
     var rawExchangeData = File.ReadAllText(pathToExchangeData);
-    exchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
-    if (exchange == null)
+    var loadedExchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
+
+    if (loadedExchange == null)
         throw new Exception("Exchange data could not be read");
+
+    exchangeHolder.UpdateExchange(loadedExchange);
 }
 catch (Exception)
 {
@@ -31,6 +35,8 @@ catch (Exception)
     Console.WriteLine("Exiting");
     return;
 }
+
+var exchange = exchangeHolder.GetExchange();
 
 Console.WriteLine($"Exchange data '{exchange.Id}' loaded");
 
