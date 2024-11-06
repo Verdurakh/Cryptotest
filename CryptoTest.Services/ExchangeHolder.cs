@@ -6,15 +6,28 @@ namespace CryptoTest.Services;
 public class ExchangeHolder
 {
     private readonly MemoryCache _exchangeCache = new(new MemoryCacheOptions());
-    private const string ExchangeKey = "Exchange";
+    private static readonly List<string> ExchangeIds = new();
 
     public Exchange? GetExchange()
     {
-        return _exchangeCache.Get<Exchange>(ExchangeKey);
+        return _exchangeCache.Get<Exchange>(ExchangeIds.FirstOrDefault());
+    }
+
+    public IEnumerable<Exchange> GetExchanges()
+    {
+        var exchanges = new List<Exchange>();
+        foreach (var exchangeId in ExchangeIds)
+        {
+            if (_exchangeCache.TryGetValue(exchangeId, out Exchange exchange) && exchange != null)
+                exchanges.Add(exchange);
+        }
+
+        return exchanges;
     }
 
     public void UpdateExchange(Exchange exchange)
     {
-        _exchangeCache.Set(ExchangeKey, exchange);
+        _exchangeCache.Set(exchange.Id, exchange);
+        ExchangeIds.Add(exchange.Id);
     }
 }

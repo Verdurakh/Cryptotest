@@ -24,6 +24,46 @@
       <AdditionalFiles Include="exchange-01.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </AdditionalFiles>
+      <None Remove="exchanges\exchange-01.json" />
+      <AdditionalFiles Include="exchanges\exchange-01.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-02.json" />
+      <AdditionalFiles Include="exchanges\exchange-02.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-03.json" />
+      <AdditionalFiles Include="exchanges\exchange-03.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-04.json" />
+      <AdditionalFiles Include="exchanges\exchange-04.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-05.json" />
+      <AdditionalFiles Include="exchanges\exchange-05.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-06.json" />
+      <AdditionalFiles Include="exchanges\exchange-06.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-07.json" />
+      <AdditionalFiles Include="exchanges\exchange-07.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-08.json" />
+      <AdditionalFiles Include="exchanges\exchange-08.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-09.json" />
+      <AdditionalFiles Include="exchanges\exchange-09.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
+      <None Remove="exchanges\exchange-10.json" />
+      <AdditionalFiles Include="exchanges\exchange-10.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </AdditionalFiles>
     </ItemGroup>
 
     <ItemGroup>

@@ -10,19 +10,24 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
-builder.Services.AddSingleton<ExchangeHolder>(provider =>
+builder.Services.AddSingleton<ExchangeHolder>(_ =>
 {
     var exchangeCache = new ExchangeHolder();
 
-    const string pathToExchangeData = "exchange-01.json";
+    const string pathToExchangeData = "exchange-01.json,exchange-02.json";
 
-    var rawExchangeData = File.ReadAllText(pathToExchangeData);
-    var loadedExchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
+    var pathToExchangeDataSplit = pathToExchangeData.Split(',');
+    foreach (var exchangeFile in pathToExchangeDataSplit)
+    {
+        var rawExchangeData = File.ReadAllText(exchangeFile);
+        var loadedExchange = JsonSerializer.Deserialize<Exchange>(rawExchangeData);
 
-    if (loadedExchange == null)
-        throw new Exception("Exchange data could not be read");
+        if (loadedExchange == null)
+            throw new Exception("Exchange data could not be read");
 
-    exchangeCache.UpdateExchange(loadedExchange);
+        exchangeCache.UpdateExchange(loadedExchange);
+    }
+
 
     return exchangeCache;
 });

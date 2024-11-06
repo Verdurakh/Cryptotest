@@ -8,4 +8,5 @@ public class TransactionOrder
     public decimal OrderRemainingAmount { get; set; }
     public decimal OrderOriginalAmount { get; set; }
     public decimal OrderPrice { get; set; }
+    public string Exchange { get; set; }
 }
