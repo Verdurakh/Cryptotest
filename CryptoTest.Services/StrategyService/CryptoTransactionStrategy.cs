@@ -1,4 +1,5 @@
-﻿using CryptoTest.Models.Enums;
+﻿using CryptoTest.Models;
+using CryptoTest.Models.Enums;
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Models.Transaction;
 using Microsoft.Extensions.Logging;
@@ -21,40 +22,36 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
     /// <exception cref="Exception"></exception>
     public Transaction CreateTransactionStrategy(IEnumerable<Exchange> exchanges, Order order)
     {
-        if (order.Type == OrderTypeEnum.Buy.ToString())
-        {
-            var availableSellingOrders = exchanges
-                .SelectMany(exchange => exchange.OrderBook.Asks.Select(ask => (Exchange: exchange, OrderHolder: ask)))
-                .Where(orderExchange => orderExchange.OrderHolder.Order.Price <= order.Price)
-                .OrderBy(orderExchange => orderExchange.OrderHolder.Order.Price)
+        var orderType = order.Type == OrderTypeEnum.Buy.ToString() ? OrderTypeEnum.Buy : OrderTypeEnum.Sell;
+        var availableOrders = GetAvailableOrders(exchanges, order, orderType);
+
+        return CreateStrategyMultiExchange(availableOrders, order);
+    }
+
+    private static List<OrderExchangePair> GetAvailableOrders(IEnumerable<Exchange> exchanges, Order order,
+        OrderTypeEnum orderType)
+    {
+        return orderType == OrderTypeEnum.Buy
+            ? exchanges
+                .SelectMany(exchange => exchange.OrderBook.Asks.Select(ask => new OrderExchangePair(exchange, ask)))
+                .Where(pair => pair.OrderHolder.Order.Price <= order.Price)
+                .OrderBy(pair => pair.OrderHolder.Order.Price)
+                .ToList()
+            : exchanges
+                .SelectMany(exchange => exchange.OrderBook.Bids.Select(bid => new OrderExchangePair(exchange, bid)))
+                .Where(pair => pair.OrderHolder.Order.Price >= order.Price)
+                .OrderByDescending(pair => pair.OrderHolder.Order.Price)
                 .ToList();
-
-            return CreateStrategyMultiExchange(availableSellingOrders, order);
-        }
-
-        if (order.Type == OrderTypeEnum.Sell.ToString())
-        {
-            var availableBuyingOrders = exchanges
-                .SelectMany(exchange => exchange.OrderBook.Bids.Select(ask => (Exchange: exchange, OrderHolder: ask)))
-                .Where(orderExchange => orderExchange.OrderHolder.Order.Price >= order.Price)
-                .OrderByDescending(orderExchange => orderExchange.OrderHolder.Order.Price)
-                .ToList();
-
-            return CreateStrategyMultiExchange(availableBuyingOrders, order);
-        }
-
-
-        throw new Exception($"Unsupported order type: {order.Type}");
     }
 
 
-    private Transaction CreateStrategyMultiExchange(List<(Exchange exchange, OrderHolder orders)> waitingOrders, Order order)
+    private Transaction CreateStrategyMultiExchange(List<OrderExchangePair> waitingOrders, Order order)
     {
         var transaction = InitializeTransaction(order);
 
         foreach (var waitingOrder in waitingOrders)
         {
-            if (!TryToUseOrderToFillTransaction(transaction, waitingOrder))
+            if (!CanWeFillOrder(transaction, waitingOrder))
                 continue;
 
             if (transaction.UnfulfilledAmount != 0)
@@ -67,28 +64,28 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
         return transaction;
     }
 
-    private bool TryToUseOrderToFillTransaction(Transaction transaction, (Exchange exchange, OrderHolder orders) sellOrder)
+    private bool CanWeFillOrder(Transaction transaction, OrderExchangePair sellOrder)
     {
         var amountThatCanBeFilledByOrder = CalculateAmountThatWeCanUse(transaction, sellOrder);
         if (amountThatCanBeFilledByOrder == 0)
         {
-            logger.LogInformation("Exchange: {ExchangeId} : No more bitcoin to use", sellOrder.exchange.Id);
+            logger.LogInformation("Exchange: {ExchangeId} : No more bitcoin to use", sellOrder.Exchange.Id);
             return false;
         }
 
-        var priceToPay = amountThatCanBeFilledByOrder * sellOrder.orders.Order.Price;
+        var priceToPay = amountThatCanBeFilledByOrder * sellOrder.OrderHolder.Order.Price;
 
         var (isPriceAdjusted, newPriceToUse) =
-            AreWeUsingMoreFundsThenExistsOnExchange(transaction, sellOrder, priceToPay);
+            AreFundsSufficient(transaction, sellOrder, priceToPay);
         if (isPriceAdjusted)
         {
-            amountThatCanBeFilledByOrder = newPriceToUse / sellOrder.orders.Order.Price;
+            amountThatCanBeFilledByOrder = newPriceToUse / sellOrder.OrderHolder.Order.Price;
             priceToPay = newPriceToUse;
         }
 
         if (priceToPay == 0)
         {
-            logger.LogInformation("Exchange: {ExchangeId} : No more money to use", sellOrder.exchange.Id);
+            logger.LogInformation("Exchange: {ExchangeId} : No more money to use", sellOrder.Exchange.Id);
             return false;
         }
 
@@ -96,12 +93,12 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
 
         logger.LogInformation(
             "Transaction added: {AmountThatCanBeFilledByOrder} btc for {PriceToPay} eur, Exchange: {ExchangeId}",
-            amountThatCanBeFilledByOrder, priceToPay, sellOrder.exchange.Id);
+            amountThatCanBeFilledByOrder, priceToPay, sellOrder.Exchange.Id);
 
         return true;
     }
 
-    private static void SetTransactionValues(Transaction transaction, (Exchange exchange, OrderHolder orders) sellOrder,
+    private static void SetTransactionValues(Transaction transaction, OrderExchangePair sellOrder,
         decimal amountThatCanBeFilledByOrder, decimal priceToPay)
     {
         transaction.FullfillmentAmount += amountThatCanBeFilledByOrder;
@@ -127,7 +124,7 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
     }
 
     private static decimal CalculateAmountThatWeCanUse(Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder)
+        OrderExchangePair sellOrder)
     {
         var amountThatCanBeFilledByOrder = GetAmountWeCanTakeFromThisOrder(transaction, sellOrder);
         var result = AreWeUsingMoreAmountThenExistsOnExchange(transaction, sellOrder, amountThatCanBeFilledByOrder);
@@ -140,51 +137,51 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
     }
 
     private static void SetExchangePriceUsage(Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder,
+        OrderExchangePair sellOrder,
         decimal priceToPay)
     {
-        transaction.ExchangePriceUsage.TryAdd(sellOrder.exchange.Id, 0);
-        transaction.ExchangePriceUsage[sellOrder.exchange.Id] += priceToPay;
+        transaction.ExchangePriceUsage.TryAdd(sellOrder.Exchange.Id, 0);
+        transaction.ExchangePriceUsage[sellOrder.Exchange.Id] += priceToPay;
     }
 
     private static void SetExchangeAmountUsage(Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder,
+        OrderExchangePair sellOrder,
         decimal amountThatCanBeFilledByOrder)
     {
-        transaction.ExchangeAmountUsage.TryAdd(sellOrder.exchange.Id, 0);
-        transaction.ExchangeAmountUsage[sellOrder.exchange.Id] += amountThatCanBeFilledByOrder;
+        transaction.ExchangeAmountUsage.TryAdd(sellOrder.Exchange.Id, 0);
+        transaction.ExchangeAmountUsage[sellOrder.Exchange.Id] += amountThatCanBeFilledByOrder;
     }
 
     private static TransactionOrder CreateTransactionItem(decimal amountThatCanBeFilledByOrder, decimal priceToPay,
-        (Exchange exchange, OrderHolder orders) sellOrder)
+        OrderExchangePair sellOrder)
     {
         return new TransactionOrder()
         {
             TransactionAmount = amountThatCanBeFilledByOrder,
             TransactionPrice = priceToPay,
-            OrderId = sellOrder.orders.Order.Id,
-            OrderRemainingAmount = sellOrder.orders.Order.Amount - amountThatCanBeFilledByOrder,
-            OrderOriginalAmount = sellOrder.orders.Order.Amount,
-            OrderPrice = sellOrder.orders.Order.Price,
-            Exchange = sellOrder.exchange.Id
+            OrderId = sellOrder.OrderHolder.Order.Id,
+            OrderRemainingAmount = sellOrder.OrderHolder.Order.Amount - amountThatCanBeFilledByOrder,
+            OrderOriginalAmount = sellOrder.OrderHolder.Order.Amount,
+            OrderPrice = sellOrder.OrderHolder.Order.Price,
+            Exchange = sellOrder.Exchange.Id
         };
     }
 
-    private static (bool isPriceAdjusted, decimal priceToUse) AreWeUsingMoreFundsThenExistsOnExchange(
+    private static (bool isPriceAdjusted, decimal priceToUse) AreFundsSufficient(
         Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder, decimal priceToPay)
+        OrderExchangePair sellOrder, decimal priceToPay)
     {
-        if (priceToPay > sellOrder.exchange.AvailableFunds.Euro)
+        if (priceToPay > sellOrder.Exchange.AvailableFunds.Euro)
         {
-            return (true, sellOrder.exchange.AvailableFunds.Euro);
+            return (true, sellOrder.Exchange.AvailableFunds.Euro);
         }
 
-        if (!transaction.ExchangePriceUsage.TryGetValue(sellOrder.exchange.Id, out var exchangePriceUsed))
+        if (!transaction.ExchangePriceUsage.TryGetValue(sellOrder.Exchange.Id, out var exchangePriceUsed))
             return (false, priceToPay);
 
-        if (exchangePriceUsed + priceToPay >= sellOrder.exchange.AvailableFunds.Euro)
+        if (exchangePriceUsed + priceToPay >= sellOrder.Exchange.AvailableFunds.Euro)
         {
-            return (true, sellOrder.exchange.AvailableFunds.Euro - exchangePriceUsed);
+            return (true, sellOrder.Exchange.AvailableFunds.Euro - exchangePriceUsed);
         }
 
         return (false, priceToPay);
@@ -193,28 +190,28 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
 
     private static (bool isAmountAdjusted, decimal newAmount) AreWeUsingMoreAmountThenExistsOnExchange(
         Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder, decimal amountThatCanBeFilledByOrder
+        OrderExchangePair sellOrder, decimal amountThatCanBeFilledByOrder
     )
     {
-        if (amountThatCanBeFilledByOrder > sellOrder.exchange.AvailableFunds.Crypto)
+        if (amountThatCanBeFilledByOrder > sellOrder.Exchange.AvailableFunds.Crypto)
         {
-            return (true, sellOrder.exchange.AvailableFunds.Crypto);
+            return (true, sellOrder.Exchange.AvailableFunds.Crypto);
         }
 
-        if (!transaction.ExchangeAmountUsage.TryGetValue(sellOrder.exchange.Id, out var exchangeAmountUsed))
+        if (!transaction.ExchangeAmountUsage.TryGetValue(sellOrder.Exchange.Id, out var exchangeAmountUsed))
             return (false, amountThatCanBeFilledByOrder);
 
-        if (exchangeAmountUsed + amountThatCanBeFilledByOrder >= sellOrder.exchange.AvailableFunds.Crypto)
+        if (exchangeAmountUsed + amountThatCanBeFilledByOrder >= sellOrder.Exchange.AvailableFunds.Crypto)
         {
-            return (true, sellOrder.exchange.AvailableFunds.Crypto - exchangeAmountUsed);
+            return (true, sellOrder.Exchange.AvailableFunds.Crypto - exchangeAmountUsed);
         }
 
         return (false, amountThatCanBeFilledByOrder);
     }
 
     private static decimal GetAmountWeCanTakeFromThisOrder(Transaction transaction,
-        (Exchange exchange, OrderHolder orders) sellOrder)
+        OrderExchangePair sellOrder)
     {
-        return Math.Min(transaction.UnfulfilledAmount, sellOrder.orders.Order.Amount);
+        return Math.Min(transaction.UnfulfilledAmount, sellOrder.OrderHolder.Order.Amount);
     }
 }
