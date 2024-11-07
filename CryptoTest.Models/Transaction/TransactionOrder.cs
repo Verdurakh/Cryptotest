@@ -1,6 +1,6 @@
 namespace CryptoTest.Models.Transaction;
 
-public class TransactionOrder
+public record TransactionOrder
 {
     public decimal TransactionAmount { get; set; }
     public decimal TransactionPrice { get; set; }

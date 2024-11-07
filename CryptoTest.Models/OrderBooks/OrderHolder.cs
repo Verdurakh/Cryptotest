@@ -1,6 +1,6 @@
 namespace CryptoTest.Models.OrderBooks;
 
-public class OrderHolder
+public record OrderHolder
 {
-    public Order Order { get; set; }
+    public Order Order { get; init; }
 }

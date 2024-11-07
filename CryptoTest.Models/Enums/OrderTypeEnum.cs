@@ -1,7 +1,10 @@
-﻿namespace CryptoTest.Models.Enums;
+﻿using System.Text.Json.Serialization;
 
+namespace CryptoTest.Models.Enums;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OrderTypeEnum
 {
-    Buy,
-    Sell
+    Buy = 1,
+    Sell = 2
 }

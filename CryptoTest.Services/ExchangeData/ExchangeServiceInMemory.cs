@@ -8,11 +8,6 @@ public class ExchangeServiceInMemory : IExchangeService
     private readonly MemoryCache _exchangeCache = new(new MemoryCacheOptions());
     private static readonly List<string> ExchangeIds = [];
 
-    public Exchange? GetExchange()
-    {
-        return _exchangeCache.Get<Exchange>(ExchangeIds.FirstOrDefault() ?? string.Empty);
-    }
-
     public IEnumerable<Exchange> GetExchanges()
     {
         var exchanges = new List<Exchange>();

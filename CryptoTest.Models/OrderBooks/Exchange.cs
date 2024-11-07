@@ -1,8 +1,8 @@
 ﻿namespace CryptoTest.Models.OrderBooks;
 
-public class Exchange
+public record Exchange
 {
-    public string Id { get; set; }
-    public AvailableFunds AvailableFunds { get; set; }
-    public OrderBook OrderBook { get; set; }
+    public string Id { get; init; }
+    public AvailableFunds AvailableFunds { get; init; }
+    public OrderBook OrderBook { get; init; }
 }

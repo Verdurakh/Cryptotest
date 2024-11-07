@@ -1,7 +1,7 @@
 namespace CryptoTest.Models.OrderBooks;
 
-public class AvailableFunds
+public record AvailableFunds
 {
-    public decimal Crypto { get; set; }
-    public decimal Euro { get; set; }
+    public decimal Crypto { get; init; }
+    public decimal Euro { get; init; }
 }

@@ -1,8 +1,8 @@
 namespace CryptoTest.Models.OrderBooks;
 
 
-public class OrderBook
+public record OrderBook
 {
-    public List<OrderHolder> Bids { get; set; }
-    public List<OrderHolder> Asks { get; set; }
+    public List<OrderHolder> Bids { get; init; }
+    public List<OrderHolder> Asks { get; init; }
 }

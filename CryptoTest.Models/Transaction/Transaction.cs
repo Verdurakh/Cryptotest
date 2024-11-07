@@ -1,6 +1,6 @@
 namespace CryptoTest.Models.Transaction;
 
-public class Transaction
+public record Transaction
 {
     public string Type { get; set; }
     public Guid FullfillmentId { get; set; }
