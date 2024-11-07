@@ -1,7 +1,5 @@
-﻿using CryptoTest.Models;
-using CryptoTest.Models.Enums;
+﻿using CryptoTest.Models.Enums;
 using CryptoTest.Models.OrderBooks;
-using CryptoTest.Services;
 using CryptoTest.Services.StrategyService;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -11,6 +9,80 @@ namespace CryptoTest.Tests;
 
 public class CryptoStrategyTests
 {
+    
+    [Fact]
+    public void Running_Out_Of_Crypto_On_Exchange_With_Two_Asking()
+    {
+        //Arrange
+        var exchange = GetSimpleExchange(2, 2, 10, 1, 20.5m, 2.5m);
+        exchange.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 2, Price = 2}});
+        var order = new Order
+        {
+            Amount = 4,
+            Price = 2,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchange, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(2.5m);
+        transaction.FullfillmentPrice.Should().Be(5m);
+        transaction.UnfulfilledAmount.Should().Be(1.5m);
+    }
+
+    
+    [Fact]
+    public void Running_Out_Of_Funds_On_Exchange_With_Two_Asking()
+    {
+        //Arrange
+        var exchange = GetSimpleExchange(2, 1, 10, 1, 2.5m, 5);
+        exchange.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 1, Price = 2}});
+        var order = new Order
+        {
+            Amount = 2,
+            Price = 2,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchange, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(1.25m);
+        transaction.FullfillmentPrice.Should().Be(2.5m);
+        transaction.UnfulfilledAmount.Should().Be(0.75m);
+    }
+    
+    [Fact]
+    public void Running_Out_Of_Funds_On_Exchange()
+    {
+        //Arrange
+        var exchange = GetSimpleExchange(2, 1, 10, 1, 1, 2);
+        var order = new Order
+        {
+            Amount = 1,
+            Price = 2,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchange, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(1);
+        transaction.FullfillmentAmount.Should().Be(0.5m);
+        transaction.FullfillmentPrice.Should().Be(1);
+        transaction.UnfulfilledAmount.Should().Be(0.5m);
+    }
+    
+    
     [Fact]
     public void Empty_On_Crypto_Exchange_Cannot_Fulfill_Order()
     {
