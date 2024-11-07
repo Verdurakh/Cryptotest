@@ -48,13 +48,13 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
     }
 
 
-    private Transaction CreateStrategyMultiExchange(List<(Exchange exchange, OrderHolder orders)> orders, Order order)
+    private Transaction CreateStrategyMultiExchange(List<(Exchange exchange, OrderHolder orders)> waitingOrders, Order order)
     {
         var transaction = InitializeTransaction(order);
 
-        foreach (var sellOrder in orders)
+        foreach (var waitingOrder in waitingOrders)
         {
-            if (!TryProcessOrder(transaction, sellOrder))
+            if (!TryToUseOrderToFillTransaction(transaction, waitingOrder))
                 continue;
 
             if (transaction.UnfulfilledAmount != 0)
@@ -67,7 +67,7 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
         return transaction;
     }
 
-    private bool TryProcessOrder(Transaction transaction, (Exchange exchange, OrderHolder orders) sellOrder)
+    private bool TryToUseOrderToFillTransaction(Transaction transaction, (Exchange exchange, OrderHolder orders) sellOrder)
     {
         var amountThatCanBeFilledByOrder = CalculateAmountThatWeCanUse(transaction, sellOrder);
         if (amountThatCanBeFilledByOrder == 0)
