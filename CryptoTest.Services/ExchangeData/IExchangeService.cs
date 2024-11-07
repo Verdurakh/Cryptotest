@@ -1,6 +1,6 @@
 using CryptoTest.Models.OrderBooks;
 
-namespace CryptoTest.Services;
+namespace CryptoTest.Services.ExchangeData;
 
 public interface IExchangeService
 {

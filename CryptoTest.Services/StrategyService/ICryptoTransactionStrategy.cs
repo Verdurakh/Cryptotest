@@ -1,7 +1,7 @@
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Models.Transaction;
 
-namespace CryptoTest.Services;
+namespace CryptoTest.Services.StrategyService;
 
 public interface ICryptoTransactionStrategy
 {

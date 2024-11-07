@@ -1,16 +1,16 @@
 ﻿using CryptoTest.Models.OrderBooks;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace CryptoTest.Services;
+namespace CryptoTest.Services.ExchangeData;
 
 public class ExchangeServiceInMemory : IExchangeService
 {
     private readonly MemoryCache _exchangeCache = new(new MemoryCacheOptions());
-    private static readonly List<string> ExchangeIds = new();
+    private static readonly List<string> ExchangeIds = [];
 
     public Exchange? GetExchange()
     {
-        return _exchangeCache.Get<Exchange>(ExchangeIds.FirstOrDefault());
+        return _exchangeCache.Get<Exchange>(ExchangeIds.FirstOrDefault() ?? string.Empty);
     }
 
     public IEnumerable<Exchange> GetExchanges()
@@ -18,7 +18,7 @@ public class ExchangeServiceInMemory : IExchangeService
         var exchanges = new List<Exchange>();
         foreach (var exchangeId in ExchangeIds)
         {
-            if (_exchangeCache.TryGetValue(exchangeId, out Exchange exchange) && exchange != null)
+            if (_exchangeCache.TryGetValue(exchangeId, out Exchange? exchange) && exchange != null)
                 exchanges.Add(exchange);
         }
 

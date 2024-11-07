@@ -1,4 +1,4 @@
-﻿namespace CryptoTest.Models;
+﻿namespace CryptoTest.Models.Enums;
 
 public enum OrderTypeEnum
 {

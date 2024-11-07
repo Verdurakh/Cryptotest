@@ -1,12 +1,18 @@
 ﻿using System.Text.Json;
-using CryptoTest.Models;
+using CryptoTest.Models.Enums;
 using CryptoTest.Models.OrderBooks;
-using CryptoTest.Services;
+using CryptoTest.Services.ExchangeData;
+using CryptoTest.Services.StrategyService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+const string pathToExchangeData =
+    "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json";
+
 
 using var host = SetupDependencyInjection(args);
-var exchangeHolder = host.Services.GetRequiredService<ExchangeHolder>();
+var exchangeHolder = host.Services.GetRequiredService<IExchangeService>();
 var exchanges = exchangeHolder.GetExchanges();
 foreach (var exchange in exchanges)
 {
@@ -43,8 +49,8 @@ while (true)
     do
     {
         Console.WriteLine($"Input amount of btc to {newOrder.Type}");
-        ;
-        if (decimal.TryParse(Console.ReadLine(), out var value))
+
+        if (decimal.TryParse(Console.ReadLine(), out var value) && value > 0)
         {
             newOrder.Amount = value;
             break;
@@ -57,7 +63,7 @@ while (true)
     do
     {
         Console.WriteLine("Input price per btc");
-        if (decimal.TryParse(Console.ReadLine(), out var value))
+        if (decimal.TryParse(Console.ReadLine(), out var value) && value > 0)
         {
             newOrder.Price = value;
             break;
@@ -70,24 +76,12 @@ while (true)
 }
 
 
-// var newOrder = new Order()
-// {
-//     Amount = 20.903m,
-//     Price = 58302.73m,
-//     Type = OrderTypeEnum.Buy.ToString(),
-//     Id = Guid.NewGuid(),
-//     Time = DateTime.Now,
-//     Kind = "Limit"
-// };
-
-
-//RunOrderOnSingleExchange();
-
 void PrintMenu()
 {
-    Console.WriteLine("1. Buy");
-    Console.WriteLine("2. Sell");
-    Console.WriteLine("3. Exit");
+    Console.WriteLine("Choose an option:");
+    Console.WriteLine("1: Buy");
+    Console.WriteLine("2: Sell");
+    Console.WriteLine("3: Exit");
 }
 
 IHost SetupDependencyInjection(string[] strings)
@@ -96,15 +90,18 @@ IHost SetupDependencyInjection(string[] strings)
     try
     {
         host2 = Host.CreateDefaultBuilder(strings)
+            .ConfigureLogging(logger =>
+            {
+                logger.ClearProviders();
+                logger.AddConsole();
+            })
             .ConfigureServices((_, services) =>
             {
                 services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
-                services.AddSingleton<ExchangeHolder>(_ =>
+                services.AddSingleton<IExchangeService>(_ =>
                 {
-                    var exchangeCache = new ExchangeHolder();
+                    var exchangeCache = new ExchangeServiceInMemory();
 
-                    const string pathToExchangeData =
-                        "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json";
 
                     var pathToExchangeDataSplit = pathToExchangeData.Split(',');
                     foreach (var exchangeFile in pathToExchangeDataSplit)
@@ -132,7 +129,7 @@ IHost SetupDependencyInjection(string[] strings)
     }
 }
 
-void RunOrderOnMultipleExchanges(ExchangeHolder exchangeHolder1, IHost host1, Order newOrder)
+void RunOrderOnMultipleExchanges(IExchangeService exchangeHolder1, IHost host1, Order newOrder)
 {
     var exchanges = exchangeHolder1.GetExchanges();
 

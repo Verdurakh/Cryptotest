@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using CryptoTest.Models.OrderBooks;
-using CryptoTest.Services;
 using CryptoTest.Services.ExchangeData;
 using CryptoTest.Services.StrategyService;
 
