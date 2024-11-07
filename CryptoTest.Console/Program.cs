@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+const string exitCode = "3";
 const string pathToExchangeData =
     "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json";
 
@@ -29,9 +30,10 @@ while (true)
 {
     PrintMenu();
     var input = Console.ReadLine();
-    if (input == "3")
+    if (input == exitCode)
         break;
-    if (input != "1" && input != "2")
+    
+    if (input != OrderTypeEnum.Buy.ToString() && input != OrderTypeEnum.Sell.ToString())
     {
         Console.WriteLine("Invalid input");
         continue;
@@ -39,13 +41,11 @@ while (true)
 
     var newOrder = new Order()
     {
-        Amount = 20.903m,
-        Price = 58302.73m,
-        Type = input == "1" ? OrderTypeEnum.Buy.ToString() : OrderTypeEnum.Sell.ToString(),
+        Type = input == OrderTypeEnum.Buy.ToString() ? OrderTypeEnum.Buy.ToString() : OrderTypeEnum.Sell.ToString(),
         Id = Guid.NewGuid(),
         Time = DateTime.Now,
-        Kind = "Limit"
     };
+    
     do
     {
         Console.WriteLine($"Input amount of btc to {newOrder.Type}");
@@ -58,7 +58,6 @@ while (true)
 
         Console.WriteLine("Invalid input");
     } while (true);
-
 
     do
     {
@@ -79,9 +78,9 @@ while (true)
 void PrintMenu()
 {
     Console.WriteLine("Choose an option:");
-    Console.WriteLine("1: Buy");
-    Console.WriteLine("2: Sell");
-    Console.WriteLine("3: Exit");
+    Console.WriteLine($"{OrderTypeEnum.Buy.ToString()}: Buy");
+    Console.WriteLine($"{OrderTypeEnum.Sell.ToString()}: Sell");
+    Console.WriteLine($"{exitCode}: Exit");
 }
 
 IHost SetupDependencyInjection(string[] strings)
