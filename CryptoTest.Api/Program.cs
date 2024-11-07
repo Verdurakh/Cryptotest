@@ -1,8 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using CryptoTest.Models.Enums;
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Services.ExchangeData;
 using CryptoTest.Services.StrategyService;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,7 +38,7 @@ AddApis(app);
 
 app.Run();
 
-void AddApis(WebApplication webApplication)
+void AddApis(IEndpointRouteBuilder webApplication)
 {
     webApplication.MapGet("/Exchanges",
             (IExchangeService exchangeHolder) => Results.Ok((object?) exchangeHolder.GetExchanges()))
@@ -45,16 +46,18 @@ void AddApis(WebApplication webApplication)
 
 
     webApplication.MapPost("/Order",
-            (Order order, ICryptoTransactionStrategy cryptoTransactionStrategy, IExchangeService exchangeHolder) =>
+            ([FromQuery] OrderTypeEnum typeEnum, [FromQuery] decimal bitcoins, [FromQuery] decimal price,
+                ICryptoTransactionStrategy cryptoTransactionStrategy, IExchangeService exchangeHolder) =>
             {
-                var validationResults = new List<ValidationResult>();
-                if (!Validator.TryValidateObject(order, new ValidationContext(order), validationResults, true))
+                if (bitcoins <= 0 || price <= 0)
                 {
-                    return Results.BadRequest(validationResults);
+                    return Results.BadRequest("Bitcoins and price must be positive values.");
                 }
 
+                var newOrder = MapRequestToModel(typeEnum, bitcoins, price);
+
                 var exchange = exchangeHolder.GetExchanges();
-                var transaction = cryptoTransactionStrategy.CreateTransactionStrategy(exchange, order);
+                var transaction = cryptoTransactionStrategy.CreateTransactionStrategy(exchange, newOrder);
                 return Results.Ok(transaction);
             })
         .WithOpenApi();
@@ -83,4 +86,17 @@ ExchangeServiceInMemory CreatedLoadedExchangeCache()
     }
 
     return exchangeHolder;
+}
+
+Order MapRequestToModel(OrderTypeEnum orderTypeEnum, decimal bitcoins1, decimal price1)
+{
+    var order = new Order()
+    {
+        Type = orderTypeEnum.ToString(),
+        Id = Guid.NewGuid(),
+        Time = DateTime.Now,
+        Amount = bitcoins1,
+        Price = price1
+    };
+    return order;
 }
