@@ -1,21 +1,23 @@
 ﻿using CryptoTest.Models;
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Models.Transaction;
+using Microsoft.Extensions.Logging;
 
 namespace CryptoTest.Services;
 
 public class CryptoTransactionStrategy : ICryptoTransactionStrategy
 {
+    private readonly ILogger<CryptoTransactionStrategy> _logger;
+
+    public CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger)
+    {
+        _logger = logger;
+    }
+
+
     public Transaction CreateTransactionStrategy(Exchange exchange, Order order)
     {
-        if (order.Type == OrderTypeEnum.Buy.ToString())
-            return CreateStrategy(exchange.OrderBook.Asks.Where(ask => ask.Order.Price <= order.Price), order,
-                exchange.Id);
-        if (order.Type == OrderTypeEnum.Sell.ToString())
-            return CreateStrategy(exchange.OrderBook.Bids.Where(bid => bid.Order.Price >= order.Price), order,
-                exchange.Id);
-
-        throw new Exception($"Unsupported order type: {order.Type}");
+        return CreateTransactionStrategy(new List<Exchange> {exchange}, order);
     }
 
     public Transaction CreateTransactionStrategy(IEnumerable<Exchange> exchanges, Order order)
@@ -55,6 +57,7 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
         {
             UnfulfilledAmount = askingAmount,
             FullfillmentId = order.Id,
+            Type = order.Type
         };
         foreach (var sellOrder in orders)
         {
@@ -69,7 +72,7 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
 
             if (amountThatCanBeFilledByOrder == 0)
             {
-                Console.WriteLine($"Exchange: {sellOrder.exchange.Id} : No more bitcoin to use");
+                _logger.LogInformation($"Exchange: {sellOrder.exchange.Id} : No more bitcoin to use");
                 continue;
             }
 
@@ -80,13 +83,14 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
             {
                 priceToPay = sellOrder.exchange.AvailableFunds.Euro - exchangePriceUsed;
                 //If we are adjusting how much funds we use we need to adjust the amount of bitcoin we buy
+                //This should result in fewer bitcoins then before so we probably don't need to check available coins
                 amountThatCanBeFilledByOrder = priceToPay / sellOrder.orders.Order.Price;
             }
 
 
             if (priceToPay == 0)
             {
-                Console.WriteLine($"Exchange: {sellOrder.exchange.Id} : No more money to use");
+                _logger.LogInformation($"Exchange: {sellOrder.exchange.Id} : No more money to use");
                 continue;
             }
 
@@ -101,14 +105,14 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
             SetExchangeAmountUsage(transaction, sellOrder, amountThatCanBeFilledByOrder);
             SetExchangePriceUsage(transaction, sellOrder, priceToPay);
 
-            Console.WriteLine(
+            _logger.LogInformation(
                 $"Transaction added: {amountThatCanBeFilledByOrder} btc for {priceToPay} eur, Exchange: {sellOrder.exchange.Id}");
 
 
             if (transaction.UnfulfilledAmount != 0)
                 continue;
 
-            Console.WriteLine("We got everyhing we wanted");
+            _logger.LogInformation("We got everything we wanted");
             break;
         }
 
@@ -149,6 +153,12 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
     private static bool AreWeUsingMoreFundsThenExistsOnExchange(Transaction transaction,
         (Exchange exchange, OrderHolder orders) sellOrder, decimal priceToPay, out decimal exchangePriceUsed)
     {
+        if (priceToPay > sellOrder.exchange.AvailableFunds.Euro)
+        {
+            exchangePriceUsed = 0;
+            return true;
+        }
+
         return transaction.ExchangePriceUsage.TryGetValue(sellOrder.exchange.Id, out exchangePriceUsed) &&
                exchangePriceUsed + priceToPay >= sellOrder.exchange.AvailableFunds.Euro;
     }
@@ -157,6 +167,13 @@ public class CryptoTransactionStrategy : ICryptoTransactionStrategy
         (Exchange exchange, OrderHolder orders) sellOrder, decimal amountThatCanBeFilledByOrder,
         out decimal exchangeAmountUsed)
     {
+        if (amountThatCanBeFilledByOrder > sellOrder.exchange.AvailableFunds.Crypto)
+        {
+            exchangeAmountUsed = 0;
+            return true;
+        }
+
+
         return transaction.ExchangeAmountUsage.TryGetValue(sellOrder.exchange.Id, out exchangeAmountUsed) &&
                exchangeAmountUsed + amountThatCanBeFilledByOrder >= sellOrder.exchange.AvailableFunds.Crypto;
     }

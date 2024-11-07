@@ -3,7 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace CryptoTest.Services;
 
-public class ExchangeHolder
+public class ExchangeServiceInMemory : IExchangeService
 {
     private readonly MemoryCache _exchangeCache = new(new MemoryCacheOptions());
     private static readonly List<string> ExchangeIds = new();

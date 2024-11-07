@@ -1,20 +1,75 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using CryptoTest.Models.OrderBooks;
 using CryptoTest.Services;
+using CryptoTest.Services.ExchangeData;
+using CryptoTest.Services.StrategyService;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+const string pathToExchangeData =
+    "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json";
+
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddLogging(loggingBuilder => { loggingBuilder.AddConsole(); });
 
-builder.Services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
-builder.Services.AddSingleton<ExchangeHolder>(_ =>
+AddDependencyInjection(builder);
+
+
+var app = builder.Build();
+
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    var exchangeCache = new ExchangeHolder();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-    const string pathToExchangeData = "exchange-01.json,exchange-02.json";
+var isRunningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+if (!isRunningInContainer)
+    app.UseHttpsRedirection();
+
+
+AddApis(app);
+
+app.Run();
+
+void AddApis(WebApplication webApplication)
+{
+    webApplication.MapGet("/Exchanges",
+            (IExchangeService exchangeHolder) => Results.Ok((object?) exchangeHolder.GetExchanges()))
+        .WithOpenApi();
+
+
+    webApplication.MapPost("/Order",
+            (Order order, ICryptoTransactionStrategy cryptoTransactionStrategy, IExchangeService exchangeHolder) =>
+            {
+                var validationResults = new List<ValidationResult>();
+                if (!Validator.TryValidateObject(order, new ValidationContext(order), validationResults, true))
+                {
+                    return Results.BadRequest(validationResults);
+                }
+
+                var exchange = exchangeHolder.GetExchanges();
+                var transaction = cryptoTransactionStrategy.CreateTransactionStrategy(exchange, order);
+                return Results.Ok(transaction);
+            })
+        .WithOpenApi();
+}
+
+void AddDependencyInjection(WebApplicationBuilder webApplicationBuilder)
+{
+    webApplicationBuilder.Services.AddScoped<ICryptoTransactionStrategy, CryptoTransactionStrategy>();
+    webApplicationBuilder.Services.AddSingleton<IExchangeService>(_ => CreatedLoadedExchangeCache());
+}
+
+ExchangeServiceInMemory CreatedLoadedExchangeCache()
+{
+    var exchangeHolder = new ExchangeServiceInMemory();
 
     var pathToExchangeDataSplit = pathToExchangeData.Split(',');
     foreach (var exchangeFile in pathToExchangeDataSplit)
@@ -25,37 +80,8 @@ builder.Services.AddSingleton<ExchangeHolder>(_ =>
         if (loadedExchange == null)
             throw new Exception("Exchange data could not be read");
 
-        exchangeCache.UpdateExchange(loadedExchange);
+        exchangeHolder.UpdateExchange(loadedExchange);
     }
 
-
-    return exchangeCache;
-});
-
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    return exchangeHolder;
 }
-
-app.UseHttpsRedirection();
-
-
-app.MapGet("/Exchange", (ExchangeHolder exchangeHolder) => { return exchangeHolder.GetExchange(); })
-    .WithOpenApi();
-
-
-app.MapPost("/Order",
-        (Order order, ICryptoTransactionStrategy cryptoTransactionStrategy, ExchangeHolder exchangeHolder) =>
-        {
-            var exchange = exchangeHolder.GetExchange();
-            var transaction = cryptoTransactionStrategy.CreateTransactionStrategy(exchange, order);
-            return transaction;
-        })
-    .WithOpenApi();
-
-app.Run();
