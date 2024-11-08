@@ -9,17 +9,22 @@ namespace CryptoTest.Tests;
 
 public class CryptoStrategyTests
 {
-    
     [Fact]
     public void Running_Out_Of_Crypto_On_Exchange_With_Two_Asking()
     {
         //Arrange
-        var exchange = GetSimpleExchange(2, 2, 10, 1, 20.5m, 2.5m);
-        exchange.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 2, Price = 2}});
+        var asking1 = new {price = 2, amount = 2};
+        var asking2 = new {price = 2, amount = 2};
+        var cryptoOnExchange = 2.5m;
+        var orderCrypto = 4;
+        var orderPrice = 2;
+        var exchange = GetSimpleExchange(asking1.price, asking1.amount, 0, 0, 99999, cryptoOnExchange);
+        exchange.OrderBook.Asks.Add(new OrderHolder()
+            {Order = new Order() {Amount = asking2.amount, Price = asking2.price}});
         var order = new Order
         {
-            Amount = 4,
-            Price = 2,
+            Amount = orderCrypto,
+            Price = orderPrice,
             Type = OrderTypeEnum.Buy.ToString()
         };
         var cryptoStrategy = CreateCryptoTransactionStrategy();
@@ -29,12 +34,12 @@ public class CryptoStrategyTests
 
         //Assert
         transaction.TransactionOrders.Should().HaveCount(2);
-        transaction.FullfillmentAmount.Should().Be(2.5m);
-        transaction.FullfillmentPrice.Should().Be(5m);
-        transaction.UnfulfilledAmount.Should().Be(1.5m);
+        transaction.FullfillmentAmount.Should().Be(cryptoOnExchange);
+        transaction.FullfillmentPrice.Should().Be(cryptoOnExchange * orderPrice);
+        transaction.UnfulfilledAmount.Should().Be(orderCrypto - cryptoOnExchange);
     }
 
-    
+
     [Fact]
     public void Running_Out_Of_Funds_On_Exchange_With_Two_Asking()
     {
@@ -58,7 +63,7 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(2.5m);
         transaction.UnfulfilledAmount.Should().Be(0.75m);
     }
-    
+
     [Fact]
     public void Running_Out_Of_Funds_On_Exchange()
     {
@@ -81,8 +86,8 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(1);
         transaction.UnfulfilledAmount.Should().Be(0.5m);
     }
-    
-    
+
+
     [Fact]
     public void Empty_On_Crypto_Exchange_Cannot_Fulfill_Order()
     {
@@ -375,7 +380,7 @@ public class CryptoStrategyTests
     }
 
     [Fact]
-    public void Two_Exchange_With_Orders_Every_Other_Exchange_fillment_Buy_Order()
+    public void Two_Exchange_With_Orders_Every_Other_Exchange_Fulfill_Buy_Order()
     {
         //Arrange
         var exchanges = new List<Exchange>();
