@@ -407,6 +407,192 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(10);
         transaction.UnfulfilledAmount.Should().Be(1m);
     }
+    
+    
+    /// <summary>
+    /// This one follows the scenario in the example.
+    /// lowest price to buy 9 BTC.
+    /// we have the following asking
+    /// 7 BTC for 3000
+    /// 4 BTC for 3300
+    /// 9 BTC for 3500
+    /// First we buy 7 for 3000
+    /// Then we buy 2 for 3300
+    /// Result is 7*3000 + 2*3300 = 27600
+    /// </summary>
+    [Fact]
+    public void Buying_Example_Buy_Nine_For_27()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange1");
+        exchange1.OrderBook.Asks.Clear();
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+
+        var order = new Order
+        {
+            Amount = 9m,
+            Price = 100000,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(9m);
+        transaction.FullfillmentPrice.Should().Be(27600m);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+    
+    /// <summary>
+    /// lowest price to buy 1 BTC.
+    /// we have the following asking
+    /// 7 BTC for 3000
+    /// 4 BTC for 3300
+    /// 9 BTC for 3500
+    /// First we buy 1 for 3000
+    /// Result is 1*3000 = 3000
+    /// </summary>
+    [Fact]
+    public void Buying_Example_Buy_One_For_3()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange1");
+        exchange1.OrderBook.Asks.Clear();
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+
+        var order = new Order
+        {
+            Amount = 1m,
+            Price = 100000,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(1);
+        transaction.FullfillmentAmount.Should().Be(1);
+        transaction.FullfillmentPrice.Should().Be(3000m);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+    
+    [Fact]
+    public void Buying_Try_To_Buy_12_For_3300()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange1");
+        exchange1.OrderBook.Asks.Clear();
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+
+        var order = new Order
+        {
+            Amount = 12m,
+            Price = 3300,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(11);
+        transaction.FullfillmentPrice.Should().Be(34200);
+        transaction.UnfulfilledAmount.Should().Be(1);
+    }
+    
+    [Fact]
+    public void Buying_Example_Buy_Nine_For_Multiple_Exchange()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange1");
+        exchange1.OrderBook.Asks.Clear();
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+        
+        var exchange2 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange2");
+        exchange2.OrderBook.Asks.Clear();
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange2);
+
+        var order = new Order
+        {
+            Amount = 9m,
+            Price = 100000,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(9m);
+        transaction.FullfillmentPrice.Should().Be(9*3000);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+    
+    [Fact]
+    public void Buying_Example_Buy_Nine_For_Multiple_Exchange_With_Limit()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1m, "Exchange1");
+        exchange1.OrderBook.Asks.Clear();
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+        
+        var exchange2 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange2");
+        exchange2.OrderBook.Asks.Clear();
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange2);
+
+        var order = new Order
+        {
+            Amount = 9m,
+            Price = 100000,
+            Type = OrderTypeEnum.Buy.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(3);
+        transaction.FullfillmentAmount.Should().Be(9m);
+        transaction.FullfillmentPrice.Should().Be(27300);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+    
 
     private static ICryptoTransactionStrategy CreateCryptoTransactionStrategy()
     {
