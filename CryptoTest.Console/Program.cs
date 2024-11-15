@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 const string exitCode = "4";
 const string exchangeCode = "3";
 const string pathToExchangeData =
-    "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json,exchanges/exchange-04.json,exchanges/exchange-05.json,exchanges/exchange-06.json";
+    "exchanges/exchange-01.json,exchanges/exchange-02.json,exchanges/exchange-03.json";
 
 
 using var host = SetupDependencyInjection(args);

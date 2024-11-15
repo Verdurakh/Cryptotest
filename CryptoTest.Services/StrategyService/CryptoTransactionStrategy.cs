@@ -75,12 +75,11 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
 
         var usablePrice = amountThatCanBeFilledByOrder * sellOrder.OrderHolder.Order.Price;
 
-        var (isAdjusted, adjustedAmount) = AreConstraintsRespected(sellOrder.Exchange.AvailableFunds.Euro,
-            transaction.ExchangePriceUsage.GetValueOrDefault(sellOrder.Exchange.Id, 0), usablePrice);
-        if (isAdjusted)
+        var constraintsResult = HandleConstraints(transaction, sellOrder, amountThatCanBeFilledByOrder, usablePrice);
+        if (constraintsResult.isAdjusted)
         {
-            usablePrice = Math.Max(0, adjustedAmount);
-            amountThatCanBeFilledByOrder = usablePrice / sellOrder.OrderHolder.Order.Price;
+            amountThatCanBeFilledByOrder = constraintsResult.adjustedAmount;
+            usablePrice = constraintsResult.adjustedPrice;
         }
 
         if (usablePrice == 0)
@@ -96,6 +95,39 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
             amountThatCanBeFilledByOrder, usablePrice, sellOrder.Exchange.Id);
 
         return true;
+    }
+
+    private static (bool isAdjusted, decimal adjustedAmount, decimal adjustedPrice) HandleConstraints(
+        Transaction transaction, OrderExchangePair sellOrder, decimal amountThatCanBeFilledByOrder, decimal usablePrice)
+    {
+        var haveConstraintAdjustedAnyValues = false;
+        if (transaction.Type == OrderTypeEnum.Buy.ToString())
+        {
+            //if we are buying constrain by euro on the exchange and adjust bitcoins if needed
+            var (isAdjusted, adjustedAmount) = AreConstraintsRespected(sellOrder.Exchange.AvailableFunds.Euro,
+                transaction.ExchangePriceUsage.GetValueOrDefault(sellOrder.Exchange.Id, 0), usablePrice);
+            if (isAdjusted)
+            {
+                haveConstraintAdjustedAnyValues = true;
+                usablePrice = Math.Max(0, adjustedAmount);
+                amountThatCanBeFilledByOrder = usablePrice / sellOrder.OrderHolder.Order.Price;
+            }
+        }
+        else if (transaction.Type == OrderTypeEnum.Sell.ToString())
+        {
+            //if we are selling constrain by crypto on the exchange and adjust euros if needed
+            var (isAdjusted, adjustedAmount) = AreConstraintsRespected(sellOrder.Exchange.AvailableFunds.Crypto,
+                transaction.ExchangeAmountUsage.GetValueOrDefault(sellOrder.Exchange.Id, 0),
+                amountThatCanBeFilledByOrder);
+            if (isAdjusted)
+            {
+                haveConstraintAdjustedAnyValues = true;
+                amountThatCanBeFilledByOrder = adjustedAmount;
+                usablePrice = amountThatCanBeFilledByOrder * sellOrder.OrderHolder.Order.Price;
+            }
+        }
+
+        return (haveConstraintAdjustedAnyValues, amountThatCanBeFilledByOrder, usablePrice);
     }
 
     private static void SetTransactionValues(Transaction transaction, OrderExchangePair sellOrder,
@@ -127,13 +159,7 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
         OrderExchangePair sellOrder)
     {
         var amountThatCanBeFilledByOrder = GetAmountWeCanTakeFromThisOrder(transaction, sellOrder);
-        var (isAdjusted, adjustedAmount) = AreConstraintsRespected(sellOrder.Exchange.AvailableFunds.Crypto,
-            transaction.ExchangeAmountUsage.GetValueOrDefault(sellOrder.Exchange.Id, 0),
-            amountThatCanBeFilledByOrder);
-        if (isAdjusted)
-        {
-            amountThatCanBeFilledByOrder = adjustedAmount;
-        }
+
 
         return Math.Max(0, amountThatCanBeFilledByOrder);
     }

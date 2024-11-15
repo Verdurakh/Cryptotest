@@ -10,15 +10,15 @@ namespace CryptoTest.Tests;
 public class CryptoStrategyTests
 {
     [Fact]
-    public void Running_Out_Of_Crypto_On_Exchange_With_Two_Asking()
+    public void Running_Out_Of_Eur_On_Exchange_With_Two_Asking()
     {
         //Arrange
         var asking1 = new {price = 2, amount = 2};
         var asking2 = new {price = 2, amount = 2};
-        var cryptoOnExchange = 2.5m;
+        var eurOnExchange = 2.5m;
         var orderCrypto = 4;
         var orderPrice = 2;
-        var exchange = GetSimpleExchange(asking1.price, asking1.amount, 0, 0, 99999, cryptoOnExchange);
+        var exchange = GetSimpleExchange(asking1.price, asking1.amount, 0, 0, eurOnExchange, 2.5m);
         exchange.OrderBook.Asks.Add(new OrderHolder()
             {Order = new Order() {Amount = asking2.amount, Price = asking2.price}});
         var order = new Order
@@ -33,10 +33,10 @@ public class CryptoStrategyTests
         var transaction = cryptoStrategy.CreateTransactionStrategy(exchange, order);
 
         //Assert
-        transaction.TransactionOrders.Should().HaveCount(2);
-        transaction.FullfillmentAmount.Should().Be(cryptoOnExchange);
-        transaction.FullfillmentPrice.Should().Be(cryptoOnExchange * orderPrice);
-        transaction.UnfulfilledAmount.Should().Be(orderCrypto - cryptoOnExchange);
+        transaction.TransactionOrders.Should().HaveCount(1);
+        transaction.FullfillmentAmount.Should().Be(1.25m);
+        transaction.FullfillmentPrice.Should().Be(eurOnExchange);
+        transaction.UnfulfilledAmount.Should().Be(2.75m);
     }
 
 
@@ -113,10 +113,10 @@ public class CryptoStrategyTests
 
 
     [Fact]
-    public void Empty_On_Euro_Exchange_Cannot_Fulfill_Order()
+    public void Empty_On_Bitcoin_Exchange_Cannot_Fulfill_Sell_Order()
     {
         //Arrange
-        var exchange = GetSimpleExchange(5, 1, 10, 1, 0, 10);
+        var exchange = GetSimpleExchange(5, 1, 10, 1, 10000, 0);
         var order = new Order
         {
             Amount = 1,
@@ -355,12 +355,12 @@ public class CryptoStrategyTests
     }
 
     [Fact]
-    public void Two_Exchange_With_Orders_Runs_Out_Of_Crypto_Can_Partially_Fulfill_Buy_Order()
+    public void Two_Exchange_With_Orders_Runs_Out_Of_Eur_Can_Partially_Fulfill_Buy_Order()
     {
         //Arrange
         var exchanges = new List<Exchange>();
-        exchanges.Add(GetSimpleExchange(5, 1, 0, 0, 1000, 1, "Exchange1"));
-        exchanges.Add(GetSimpleExchange(5, 1, 0, 0, 1000, 0.1m, "Exchange2"));
+        exchanges.Add(GetSimpleExchange(5, 1, 0, 0, 1, 1000, "Exchange1"));
+        exchanges.Add(GetSimpleExchange(5, 1, 0, 0, 0.1m, 1000, "Exchange2"));
         var order = new Order
         {
             Amount = 1.5m,
@@ -374,9 +374,9 @@ public class CryptoStrategyTests
 
         //Assert
         transaction.TransactionOrders.Should().HaveCount(2);
-        transaction.FullfillmentAmount.Should().Be(1.1m);
-        transaction.FullfillmentPrice.Should().Be(5 * 1.1m);
-        transaction.UnfulfilledAmount.Should().Be(0.4m);
+        transaction.FullfillmentAmount.Should().Be(0.22m);
+        transaction.FullfillmentPrice.Should().Be(1.1m);
+        transaction.UnfulfilledAmount.Should().Be(1.28m);
     }
 
     [Fact]
@@ -557,7 +557,7 @@ public class CryptoStrategyTests
     }
 
     [Fact]
-    public void Buying_Example_Buy_Nine_For_Multiple_Exchange_With_Limit()
+    public void Buying_Example_Buy_Nine_From_Multiple_Exchanges()
     {
         //Arrange
         var exchanges = new List<Exchange>();
@@ -587,9 +587,9 @@ public class CryptoStrategyTests
         var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
 
         //Assert
-        transaction.TransactionOrders.Should().HaveCount(3);
+        transaction.TransactionOrders.Should().HaveCount(2);
         transaction.FullfillmentAmount.Should().Be(9m);
-        transaction.FullfillmentPrice.Should().Be(27300);
+        transaction.FullfillmentPrice.Should().Be(27000);
         transaction.UnfulfilledAmount.Should().Be(0);
     }
 
