@@ -407,8 +407,8 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(10);
         transaction.UnfulfilledAmount.Should().Be(1m);
     }
-    
-    
+
+
     /// <summary>
     /// This one follows the scenario in the example.
     /// lowest price to buy 9 BTC.
@@ -449,7 +449,7 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(27600m);
         transaction.UnfulfilledAmount.Should().Be(0);
     }
-    
+
     /// <summary>
     /// lowest price to buy 1 BTC.
     /// we have the following asking
@@ -488,7 +488,7 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(3000m);
         transaction.UnfulfilledAmount.Should().Be(0);
     }
-    
+
     [Fact]
     public void Buying_Try_To_Buy_12_For_3300()
     {
@@ -518,7 +518,7 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(34200);
         transaction.UnfulfilledAmount.Should().Be(1);
     }
-    
+
     [Fact]
     public void Buying_Example_Buy_Nine_For_Multiple_Exchange()
     {
@@ -530,7 +530,7 @@ public class CryptoStrategyTests
         exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
         exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
         exchanges.Add(exchange1);
-        
+
         var exchange2 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange2");
         exchange2.OrderBook.Asks.Clear();
         exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
@@ -552,10 +552,10 @@ public class CryptoStrategyTests
         //Assert
         transaction.TransactionOrders.Should().HaveCount(2);
         transaction.FullfillmentAmount.Should().Be(9m);
-        transaction.FullfillmentPrice.Should().Be(9*3000);
+        transaction.FullfillmentPrice.Should().Be(9 * 3000);
         transaction.UnfulfilledAmount.Should().Be(0);
     }
-    
+
     [Fact]
     public void Buying_Example_Buy_Nine_For_Multiple_Exchange_With_Limit()
     {
@@ -567,7 +567,7 @@ public class CryptoStrategyTests
         exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
         exchange1.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
         exchanges.Add(exchange1);
-        
+
         var exchange2 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange2");
         exchange2.OrderBook.Asks.Clear();
         exchange2.OrderBook.Asks.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
@@ -592,7 +592,82 @@ public class CryptoStrategyTests
         transaction.FullfillmentPrice.Should().Be(27300);
         transaction.UnfulfilledAmount.Should().Be(0);
     }
-    
+
+    [Fact]
+    public void Sell_Nine_For_Multiple_Exchange_With_Limit()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1m, "Exchange1");
+        exchange1.OrderBook.Bids.Clear();
+        exchange1.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange1.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange1);
+
+        var exchange2 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 1000m, "Exchange2");
+        exchange2.OrderBook.Bids.Clear();
+        exchange2.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 7, Price = 3000}});
+        exchange2.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange2.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 9, Price = 3500m}});
+        exchanges.Add(exchange2);
+
+        var order = new Order
+        {
+            Amount = 9m,
+            Price = 1,
+            Type = OrderTypeEnum.Sell.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(2);
+        transaction.FullfillmentAmount.Should().Be(9m);
+        transaction.FullfillmentPrice.Should().Be(31500);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+
+
+    [Fact]
+    public void Sell_Simple_Sell_To_Highest_Price()
+    {
+        //Arrange
+        var exchanges = new List<Exchange>();
+        var exchange1 = GetSimpleExchange(1, 1, 0, 0, 100000.01m, 9m, "Exchange1");
+        var lowestPrice = 3000;
+        var highestPrice = 4000;
+        var numberOfBtc = 9;
+        exchange1.OrderBook.Bids.Clear();
+        exchange1.OrderBook.Bids.Add(
+            new OrderHolder() {Order = new Order() {Amount = numberOfBtc, Price = lowestPrice}});
+        exchange1.OrderBook.Bids.Add(new OrderHolder() {Order = new Order() {Amount = 4, Price = 3300m}});
+        exchange1.OrderBook.Bids.Add(new OrderHolder()
+            {Order = new Order() {Amount = numberOfBtc, Price = highestPrice}});
+        exchanges.Add(exchange1);
+
+
+        var order = new Order
+        {
+            Amount = numberOfBtc,
+            Price = 1,
+            Type = OrderTypeEnum.Sell.ToString()
+        };
+        var cryptoStrategy = CreateCryptoTransactionStrategy();
+
+        //Act
+        var transaction = cryptoStrategy.CreateTransactionStrategy(exchanges, order);
+
+        //Assert
+        transaction.TransactionOrders.Should().HaveCount(1);
+        transaction.FullfillmentAmount.Should().Be(9m);
+        transaction.FullfillmentPrice.Should().Be(numberOfBtc * highestPrice);
+        transaction.FullfillmentPrice.Should().NotBe(numberOfBtc * lowestPrice);
+        transaction.UnfulfilledAmount.Should().Be(0);
+    }
+
 
     private static ICryptoTransactionStrategy CreateCryptoTransactionStrategy()
     {

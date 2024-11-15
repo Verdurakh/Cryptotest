@@ -176,7 +176,7 @@ public class CryptoTransactionStrategy(ILogger<CryptoTransactionStrategy> logger
     /// <param name="amountUsed"></param>
     /// <param name="amountToCheck"></param>
     /// <returns></returns>
-    private static (bool isAdjusted, decimal adjustedAmount) AreConstraintsRespected(
+    public static (bool isAdjusted, decimal adjustedAmount) AreConstraintsRespected(
         decimal availableAmount, decimal amountUsed, decimal amountToCheck)
     {
         var remainingAmount = availableAmount - amountUsed;
